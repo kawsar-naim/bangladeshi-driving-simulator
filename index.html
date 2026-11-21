@@ -90,7 +90,7 @@ select{font-size:16px;padding:10px;border-radius:10px;min-height:44px}
 <!-- HUD -->
 <div id="hud">
   <div class="hudTop">
-    <span class="pill gold" id="hudMoney">৳500</span>
+    <span class="pill gold" id="hudMoney">৳0</span>
     <span class="pill" id="hudArea">📍 Farmgate</span>
     <span class="pill" id="hudClock">☀️ দিন</span>
     <span class="pill" id="hudWeather">🌤️ পরিষ্কার</span>
@@ -139,7 +139,7 @@ select{font-size:16px;padding:10px;border-radius:10px;min-height:44px}
 
 <!-- GARAGE -->
 <div class="screen" id="scrGarage">
-  <div class="topbar"><button class="btnGhost" data-back>← ফিরুন</button><h2>🔧 গ্যারেজ</h2><span class="moneyPill moneyTxt">৳500</span></div>
+  <div class="topbar"><button class="btnGhost" data-back>← ফিরুন</button><h2>🔧 গ্যারেজ</h2><span class="moneyPill moneyTxt">৳0</span></div>
   <div id="garageList" style="width:100%;max-width:560px"></div>
   <div class="card"><h3>⛽ পেট্রল ও মেরামত</h3>
   <p>তেল: <b id="gFuelTxt">100%</b> · ক্ষতি: <b id="gDmgTxt">0%</b></p>
@@ -150,17 +150,17 @@ select{font-size:16px;padding:10px;border-radius:10px;min-height:44px}
 
 <!-- VEHICLES -->
 <div class="screen" id="scrVehicles">
-  <div class="topbar"><button class="btnGhost" data-back>← ফিরুন</button><h2>🚗 গাড়ি বাছাই</h2><span class="moneyPill moneyTxt">৳500</span></div>
+  <div class="topbar"><button class="btnGhost" data-back>← ফিরুন</button><h2>🚗 গাড়ি বাছাই</h2><span class="moneyPill moneyTxt">৳0</span></div>
   <div id="vehicleList" style="width:100%;max-width:560px"></div>
 </div>
 
 <!-- MISSIONS -->
 <div class="screen" id="scrMissions">
-  <div class="topbar"><button class="btnGhost" data-back>← ফিরুন</button><h2>🎯 মিশন</h2><span class="moneyPill moneyTxt">৳500</span></div>
+  <div class="topbar"><button class="btnGhost" data-back>← ফিরুন</button><h2>🎯 মিশন</h2><span class="moneyPill moneyTxt">৳0</span></div>
   <div class="card"><h3>🚖 যাত্রী মিশন (প্রধান কাজ)</h3><p>রাস্তার পাশে অপেক্ষমাণ যাত্রী তুলুন, ভাড়া নিয়ে দরদাম করুন, গন্তব্য এলাকায় পৌঁছে দিন। দূরত্ব অনুযায়ী ভাড়া, সুন্দর পার্কিংয়ে +৳২০ বোনাস। সম্পন্ন ট্রিপ: <b id="statTrips">0</b> · মোট আয়: <b id="statEarned">৳0</b></p></div>
   <div class="card"><h3>🗺️ এলাকা ভ্রমণ</h3><p>সব এলাকা ঘুরে দেখুন: Farmgate, Mohakhali, Banani, Gulshan, Mirpur আর গ্রাম। পরিদর্শন করা: <b id="statAreas">Farmgate</b></p></div>
   <div class="card"><h3>🚔 নিয়ম মেনে চলুন</h3><p>লাল সিগন্যাল অমান্য করলে বা পুলিশের সামনে ধাক্কা দিলে জরিমানা ৳১০০! সাবধানে চালান, মামা।</p></div>
-  <div class="card"><h3>🏆 লক্ষ্য</h3><p>৳500 দিয়ে শুরু। ভাড়া খেটে সব ৮টা গাড়ি কিনুন — রিকশা থেকে লোকাল বাস!</p></div>
+  <div class="card"><h3>🏆 লক্ষ্য</h3><p>৳০ দিয়ে শুরু। যাত্রী নামিয়ে দিলে ভাড়া ব্যালেন্সে যোগ হবে, জরিমানা হলে ব্যালেন্স থেকে কেটে নেওয়া হবে। গেম বন্ধ করে পরে আবার খুললেও জমানো টাকাই থাকবে। ভাড়া খেটে সব ৮টা গাড়ি কিনুন — রিকশা থেকে লোকাল বাস!</p></div>
 </div>
 
 <!-- SETTINGS -->
@@ -214,11 +214,33 @@ var SHOUTS=['ওই মিয়া! চোখে দেখেন না?','এ�
 var WORLD=420, ROADW=14;
 
 /* ============ STATE ============ */
-var S={money:500,owned:{rickshaw:true},cur:'rickshaw',upg:{rickshaw:{e:0,b:0,t:0}},fuel:100,dmg:0,trips:0,earned:0,visited:{Farmgate:true},
+var S={money:0,owned:{rickshaw:true},cur:'rickshaw',upg:{rickshaw:{e:0,b:0,t:0}},fuel:100,dmg:0,trips:0,earned:0,visited:{Farmgate:true},
  sound:true,weatherMode:'auto',timeMode:'auto',camMode:'third',touchMode:'auto',started:false};
 VEHICLES.forEach(function(v){if(!S.upg[v.id])S.upg[v.id]={e:0,b:0,t:0};});
 function veh(){return VEHICLES.find(function(v){return v.id===S.cur;});}
 function upgMul(){var u=S.upg[S.cur];return 1+u.e*0.12;}
+/* ============ SAVE — balance persists across visits ============
+   First ever visit: no save exists, so the game starts at ৳0 exactly as
+   requested. Every money change goes through moneyUI(), which calls
+   saveGame(), so fares added on drop-off and fines deducted are written
+   immediately; loadGame() below restores that exact balance (plus the
+   trips/earnings stats and anything bought with the money) the next
+   time the game is opened on this device/browser. */
+var SAVE_KEY='bds_save_v1';
+function saveGame(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({money:S.money,trips:S.trips,earned:S.earned,owned:S.owned,cur:S.cur,upg:S.upg}));}catch(e){}}
+function loadGame(){
+ try{
+  var raw=localStorage.getItem(SAVE_KEY);if(!raw)return;
+  var d=JSON.parse(raw);if(!d)return;
+  if(typeof d.money==='number'&&isFinite(d.money))S.money=Math.round(d.money);
+  if(typeof d.trips==='number'&&isFinite(d.trips))S.trips=Math.max(0,Math.round(d.trips));
+  if(typeof d.earned==='number'&&isFinite(d.earned))S.earned=Math.round(d.earned);
+  if(d.owned&&typeof d.owned==='object'){VEHICLES.forEach(function(v){if(d.owned[v.id])S.owned[v.id]=true;});}
+  if(d.upg&&typeof d.upg==='object'){VEHICLES.forEach(function(v){var u=d.upg[v.id];if(u)S.upg[v.id]={e:Math.max(0,Math.min(3,u.e|0)),b:Math.max(0,Math.min(3,u.b|0)),t:Math.max(0,Math.min(3,u.t|0))};});}
+  if(typeof d.cur==='string'&&S.owned[d.cur]&&VEHICLES.some(function(v){return v.id===d.cur;}))S.cur=d.cur;
+ }catch(e){}
+}
+loadGame();
 
 /* ============ AUDIO (WebAudio, resumes on tap — Samsung/Chrome safe) ============ */
 var AC=null,_master=null;
@@ -860,7 +882,7 @@ function show(id){document.querySelectorAll('.screen').forEach(function(s){s.cla
 function toast(msg,ms){var t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none';},ms||2600);}
 var bubH=null;
 function bubble(msg,ms){var b=$('bubble');b.textContent=msg;b.style.display='block';clearTimeout(bubH);bubH=setTimeout(function(){b.style.display='none';},ms||3200);}
-function moneyUI(){document.querySelectorAll('.moneyTxt').forEach(function(e){e.textContent='৳'+S.money;});$('hudMoney').textContent='৳'+S.money;}
+function moneyUI(){document.querySelectorAll('.moneyTxt').forEach(function(e){e.textContent='৳'+S.money;});$('hudMoney').textContent='৳'+S.money;saveGame();}
 function modal(html){$('modalBox').innerHTML=html;$('modal').classList.add('on');var cb=$('modalBox').querySelector('[data-close]');if(cb)cb.onclick=function(){closeModal();};}
 function closeModal(){$('modal').classList.remove('on');$('modalBox').innerHTML='';}
 function applyTouch(){var on=S.touchMode==='on'||(S.touchMode==='auto'&&('ontouchstart'in window));$('hud').classList.toggle('touchOn',on);}
@@ -942,7 +964,7 @@ function onCrash(who){
  if(P.speed>4||P.speed<-2){crashSnd();S.dmg=Math.min(100,S.dmg+Math.abs(P.speed)*0.9);P.speed*=-0.25;
   var shout=SHOUTS[Math.floor(Math.random()*SHOUTS.length)];bubble(shout,2800);speak(shout,'driver',{priority:'high'});
   if(mission&&mission.phase==='drive'&&Math.random()<.6)setTimeout(function(){if(mission&&mission.phase==='drive'){bubble(mission.p.name+': “'+mission.p.persona.lines[0]+'”');speak(mission.p.persona.lines[0],'passenger');}},2900);
-  if(fineCd<=0&&police.some(function(c){return dist2d(P.x,P.z,c.x,c.z)<26;})){fineCd=20;if(S.money>=100){S.money-=100;moneyUI();toast('🚔 পুলিশের সামনে ধাক্কা! জরিমানা ৳১০০',3000);speak('পুলিশের সামনে ধাক্কা দিলেন! জরিমানা একশো টাকা।','police');}}
+  if(fineCd<=0&&police.some(function(c){return dist2d(P.x,P.z,c.x,c.z)<26;})){fineCd=20;S.money-=100;moneyUI();toast('🚔 পুলিশের সামনে ধাক্কা! জরিমানা ৳১০০ — ব্যালেন্স ৳'+S.money,3000);speak('পুলিশের সামনে ধাক্কা দিলেন! জরিমানা একশো টাকা।','police');}
  }
 }
 
@@ -1011,7 +1033,7 @@ function loop(){
  signals.forEach(function(sg){sg.phase=(sg.phase+dt)%14;var col=signalRed(sg)?0xff2222:(sg.phase<6?0x00ff55:0xffcc00);if(sg._col!==col){sg._col=col;sg.lamp.material.color.setHex(col);}});
  // red-light fine
  if(fineCd>0)fineCd-=dt;
- signals.forEach(function(sg){if(fineCd<=0&&signalRed(sg)&&Math.abs(P.speed)>6&&dist2d(P.x,P.z,sg.x,sg.z)<9){fineCd=15;if(S.money>=100){S.money-=100;moneyUI();toast('🚦 লাল সিগন্যাল ভেঙেছেন! জরিমানা ৳১০০',3000);bubble('পুলিশ: “এইটা কি আপনার বাপের রাস্তা?” 👮');speak('এইটা কি আপনার বাপের রাস্তা? লাল সিগন্যাল ভেঙেছেন! জরিমানা একশো টাকা।','police',{priority:'high'});}}});
+ signals.forEach(function(sg){if(fineCd<=0&&signalRed(sg)&&Math.abs(P.speed)>6&&dist2d(P.x,P.z,sg.x,sg.z)<9){fineCd=15;S.money-=100;moneyUI();toast('🚦 লাল সিগন্যাল ভেঙেছেন! জরিমানা ৳১০০ — ব্যালেন্স ৳'+S.money,3000);bubble('পুলিশ: “এইটা কি আপনার বাপের রাস্তা?” 👮');speak('এইটা কি আপনার বাপের রাস্তা? লাল সিগন্যাল ভেঙেছেন! জরিমানা একশো টাকা।','police',{priority:'high'});}});
  // area detect
  var area='রাস্তা';AREAS.forEach(function(a){if(Math.hypot(P.x-a.x,P.z-a.z)<62){area=a.bn+' ('+a.name+')';if(!S.visited[a.name]){S.visited[a.name]=true;toast('🗺️ নতুন এলাকা: '+a.bn+'!',2500);}}});
  if(area!==lastArea){lastArea=area;$('hudArea').textContent='📍 '+area;}
