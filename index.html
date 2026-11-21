@@ -303,9 +303,20 @@ function engine(on,rpm){
    interrupt, ride chatter never piles up. speechSynthesis is kept ONLY as
    a repaired backup (voices loaded via voiceschanged, resume() workaround,
    primed on the PLAY tap) for any line that has no clip. S.sound off =
-   no voice. */
+   no voice.
+   EXPRESSION PASS: all 32 clips were re-recorded with acted delivery —
+   each line is performed with the emotion of its moment (excited "চলেন
+   মামা!", impatient passengers faster and sharper, arguing passengers
+   annoyed, crash shouts loud and furious, police slow, deep-pitched and
+   stern, a warm grateful "ধন্যবাদ, মামা!"), with per-role character
+   voices and emphasis punctuation baked into the performance. Playback
+   adds a small random pitch wobble per play so a repeated line never
+   sounds like the exact same recording twice, and shouts/police lines
+   get a little extra level. The speechSynthesis fallback profiles below
+   were widened the same way (deeper/slower police, faster angrier
+   drivers) so clip-less lines emote too. */
 var _bnVoice=null,_speaking=false,_speakQ=[],_lastSpeakAt=0,_lastSpeakText='',_voicePrimed=false,_speakToken=0;
-var VOICE_PROFILES={passenger:{pitch:1.12,rate:1.0},police:{pitch:0.78,rate:0.9},driver:{pitch:0.95,rate:1.07},ped:{pitch:1.05,rate:1.08}};
+var VOICE_PROFILES={passenger:{pitch:1.18,rate:1.03},police:{pitch:0.68,rate:0.85},driver:{pitch:0.98,rate:1.16},ped:{pitch:1.12,rate:1.18}};
 /* ---- Pre-recorded clip engine (WebAudio buffers — the horn/engine path) ----
    WHY THIS CHANGED (the "voice আসে না" bug): the previous build played the
    clips through ONE shared HTMLAudio element, "unlocked" in primeVoice()
@@ -349,7 +360,13 @@ function _playClip(name){
  _stopCurVoice();
  var tk=++_vToken;_vBusy=true;
  try{
-  var src=ac.createBufferSource();src.buffer=buf;src.connect(_voiceBus(ac));
+  var src=ac.createBufferSource();src.buffer=buf;
+  /* Expression at playback: a slight random pitch wobble (±35 cents) so
+     the same line never sounds bit-identical twice, plus a touch more
+     level on the loud emotional lines (crash shouts, police fines). */
+  try{src.detune.value=(Math.random()*70-35);}catch(e){}
+  var gn=ac.createGain();gn.gain.value=(name.indexOf('shout')===0||name.indexOf('police')===0)?1.15:1.0;
+  src.connect(gn);gn.connect(_voiceBus(ac));
   _vCurSrc=src;
   src.onended=function(){if(tk===_vToken){_vBusy=false;_vCurSrc=null;_voiceNext();}};
   src.start();
@@ -456,8 +473,8 @@ function _speakNow(clean,who){
  try{
   var u=new SpeechSynthesisUtterance(clean);
   if(_bnVoice){u.voice=_bnVoice;u.lang=_bnVoice.lang;}else u.lang='bn-BD';
-  u.pitch=Math.max(0,Math.min(2,prof.pitch+(Math.random()*.08-.04)));
-  u.rate=prof.rate;u.volume=1;
+  u.pitch=Math.max(0,Math.min(2,prof.pitch+(Math.random()*.2-.1)));
+  u.rate=Math.max(.5,Math.min(2,prof.rate+(Math.random()*.1-.05)));u.volume=1;
   _speaking=true;_lastSpeakAt=Date.now();_lastSpeakText=clean;
   var token=++_speakToken,done=false;
   var finish=function(){if(done||token!==_speakToken)return;done=true;_speaking=false;if(_speakQ.length){var nxt=_speakQ.shift();setTimeout(function(){if(S.sound&&S.started)_speakNow(nxt.text,nxt.who);},180);}};
