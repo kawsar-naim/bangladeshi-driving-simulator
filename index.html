@@ -174,6 +174,19 @@ select{font-size:16px;padding:10px;border-radius:10px;min-height:44px}
     <label class="tgl">📷 ক্যামেরা <select id="setCam"><option value="third">থার্ড পারসন</option><option value="first">ফার্স্ট পারসন</option></select></label>
     <label class="tgl">📱 টাচ কন্ট্রোল <select id="setTouch"><option value="auto">অটো</option><option value="on">সবসময় অন</option><option value="off">অফ</option></select></label>
   </div>
+  <div class="card"><h3>🎙️ ১ম গেমের ভয়েস প্যাক — Tesla Dhongsho</h3>
+  <p>১ম গেমের (টেসলা ধ্বংস) সব আসল রেকর্ডেড ভয়েস <b>হুবহু একই ফাইলে</b> এই গেমেও যোগ করা হয়েছে — মোট <b>১২০টি</b> ভয়েস ও সাউন্ড ক্লিপ। যাত্রী ওঠা-নামা, ধাক্কার চিৎকার, পুলিশের লাইন, হকারের ডাক, আসল হর্ন — সব গেমের ভেতরে পালা করে বাজবে। নিচের বাটনে চেপে এখনই শুনে দেখুন:</p>
+  <div class="row">
+  <button class="btnG" data-tpack="pax">🧍 যাত্রীর গলা</button>
+  <button class="btnG" data-tpack="crash">💥 ধাক্কার চিৎকার</button>
+  <button class="btnG" data-tpack="rant">😡 রাগী ঝাড়ি</button>
+  <button class="btnG" data-tpack="police">👮 পুলিশের গলা</button>
+  <button class="btnG" data-tpack="fun">😂 হাসি ও মজা</button>
+  <button class="btnG" data-tpack="street">📢 হকার ও জনতা</button>
+  <button class="btnG" data-tpack="sfx">📣 হর্ন ও সাউন্ড</button>
+  <button class="btnGold" data-tpack="all">🎲 যেকোনো একটা</button>
+  </div>
+  <p id="tpackNow" style="margin-top:6px;color:#ffe9a8"></p></div>
   <div class="card"><h3>সম্পর্কে</h3><p>Bangladeshi Driving Simulator · বাংলাদেশের ড্রাইভিং সিমুলেটর<br>ট্যাগলাইন: বাপের রাস্তা — মামা, চলেন!<br><b>Creator by Naim</b><br>এই গেমটি Chrome ব্রাউজারেই চলে — ফোন ও ল্যাপটপ দুটোতেই।</p></div>
 </div>
 
@@ -249,9 +262,15 @@ function audio(){if(!S.sound)return null;try{if(!AC)AC=new (window.AudioContext|
    horn/engine/crash can never clip or distort (a key source of crackle). */
 function masterDest(ac){if(!_master){var comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=18;comp.ratio.value=4;comp.attack.value=.004;comp.release.value=.18;var mg=ac.createGain();mg.gain.value=.9;mg.connect(comp);comp.connect(ac.destination);_master=mg;}return _master;}
 function beep(f,d,type,v,slide){var ac=audio();if(!ac)return;var o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime;o.type=type||'square';o.frequency.value=f;if(slide)o.frequency.setTargetAtTime(slide,t,.03);var vol=v||.12;g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(vol,t+.008);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(masterDest(ac));o.start(t);o.stop(t+d+.05);}
-function horn(){beep(370,.35,'square',.15);setTimeout(function(){beep(440,.3,'square',.12);},30);}
-function crashSnd(){beep(120,.3,'sawtooth',.2,40);beep(70,.4,'triangle',.18,30);}
-function coinSnd(){beep(900,.12,'sine',.15);setTimeout(function(){beep(1300,.2,'sine',.15);},110);}
+var _hornFlip=false,_hornCount=0;
+function horn(){
+ _hornCount++;
+ var key=_hornCount%4===3?'bHornMeme':(_hornFlip?'hornBus':'hornCar');_hornFlip=!_hornFlip;
+ if(playTeslaSfx(key,.95))return;
+ beep(370,.35,'square',.15);setTimeout(function(){beep(440,.3,'square',.12);},30);
+}
+function crashSnd(){beep(120,.3,'sawtooth',.2,40);beep(70,.4,'triangle',.18,30);playTeslaSfx('crash',.6);if(Math.random()<.4)playTeslaSfx('glass',.45);}
+function coinSnd(){if(playTeslaSfx('cash',.9))return;beep(900,.12,'sine',.15);setTimeout(function(){beep(1300,.2,'sine',.15);},110);}
 /* Engine: smooth triangle + sine sub through a lowpass filter.
    FIX for the continuous "jir jir" crackle: the old engine was a raw sawtooth
    oscillator whose frequency was overwritten directly every animation frame
@@ -354,6 +373,7 @@ function _stopCurVoice(){
  if(_vCurEl){try{_vCurEl.pause();}catch(e){}_vCurEl=null;}
 }
 function _playClip(name){
+ if(name.indexOf('ts:')===0){_playTeslaClip(name.slice(3));return;}
  var buf=_vBuffers[name];
  if(!buf){_playClipViaElement(name);return;}
  var ac=audio();if(!ac){_vBusy=false;_voiceNext();return;}
@@ -429,7 +449,7 @@ function primeVoice(){
     the moment its bubble appears. No media-element play/pause trick: that
     race is what silently killed the voice in the previous build. */
  try{audio();}catch(e){}
- loadVoiceClips();
+ loadVoiceClips();loadTeslaClips();
  /* speechSynthesis backup priming (only for lines without a clip). */
  try{
   if(!('speechSynthesis' in window))return;
@@ -486,6 +506,106 @@ function _speakNow(clean,who){
  }catch(e){_speaking=false;}
 }
 function cancelSpeak(){_vQueue.length=0;_vToken++;_stopCurVoice();_vBusy=false;_speakQ.length=0;_speaking=false;_speakToken++;try{if('speechSynthesis' in window)window.speechSynthesis.cancel();}catch(e){}}
+
+/* ============ TESLA DHONGSHO VOICE PACK — ১ম গেমের হুবহু ভয়েস ============
+   Owner's request: "আমার আগের গেমে যেই ভয়েস গুলা দেয়া আছে same ওই গুলাও
+   এই ২য় গেমে add করবা" — so EVERY audio file of the first game
+   (Tesla Dhongsho) is copied byte-for-byte into assets/tesla/ (121 files,
+   checksums verified identical to the originals) and played here through
+   the SAME WebAudio context + master compressor as this game's own 32
+   clips — the path that fixed the Samsung/Android silence — never a
+   shared media element (element playback remains only as the per-clip
+   fallback while a buffer is still decoding, exactly like the native
+   clips). 'silent-kick' is the first game's silent iOS-unlock file: kept
+   for completeness, never rotated. The other 120 clips are all wired
+   into gameplay in the first game's own spirit:
+   - PLAY চাপলেই 'start' লাইন; যাত্রীর সালাম/লাইন পালা করে greet/paxA/paxB
+   - নামার মুহূর্তে wow/woww/hisab; ধাক্কায় shoutA/shoutB + ouch/mega/
+     rant/busp rotation; পুলিশের জরিমানায় police/policeAsk/ahoVatija/
+     bust/sorom/dhorchos; যাত্রী হেঁটে গেলে plea/khoma/noNeed rotation
+   - হর্নে আসল hornCar/hornBus পালা করে (প্রতি ৪র্থ চাপে bHornMeme),
+     টাকা পেলে আসল cash, ধাক্কায় crash/glass layered — synth শব্দ
+     fallback হিসেবে আগের মতোই থাকে
+   - Settings-এ "১ম গেমের ভয়েস প্যাক" কার্ড থেকে সব ক্যাটাগরি টেস্ট করা যায়
+   Loading is staggered (max 4 fetches/decodes at once, priority lines
+   first) so 121 extra clips never flood phone memory at boot. */
+var TESLA_SRC={ahoVatija:'ahoVatija-7941d8cb.mp3',bAhaha:'bAhaha-a11a6414.mp3',bBrake:'bBrake-01fac95a.mp3',bCartoon:'bCartoon-3dee12c0.mp3',bCrashMeme:'bCrashMeme-43780568.mp3',bDishum:'bDishum-65f6aa12.mp3',bGoodNews:'bGoodNews-c461dcbc.mp3',bHornMeme:'bHornMeme-bc04bb9f.mp3',bKhoma:'bKhoma-d86b4f56.mp3',bLaugh:'bLaugh-93408f5c.mp3',bPlease:'bPlease-a41ca08b.mp3',bPunch:'bPunch-0e3865a2.mp3',bell:'bell-ee914fc5.mp3',bkq:'bkq-e824dbbf.mp3',busp01:'busp01-e7da32e0.mp3',busp02:'busp02-561e452d.mp3',busp03:'busp03-35da2d33.mp3',busp04:'busp04-c8aa6a9e.mp3',busslap:'busslap-3451a539.mp3',bust:'bust-feb7ef02.mp3',cash:'cash-73acbae7.mp3',crash:'crash-5741a18a.mp3',crash09:'crash09-b40ee4b4.mp3',crossBell:'crossBell-232b04b9.mp3',dhoira:'dhoira-60ba9db4.mp3',dhorchos:'dhorchos-4a0b9d46.mp3',gameover:'gameover-8c34d3e3.mp3',glass:'glass-a78defba.mp3',greet:'greet-eb721052.mp3',hawker1:'hawker1-ff0cb92c.mp3',hawker2:'hawker2-335ec39c.mp3',hehe:'hehe-9622a794.mp3',hisab:'hisab-b1c47562.mp3',hoba:'hoba-e28e893e.mp3',hole:'hole-3e5f422a.mp3',hornBus:'hornBus-4dc62502.mp3',hornCar:'hornCar-c964e7fe.mp3',jamq:'jamq-63a7bd8d.mp3',joke:'joke-fb574819.mp3',kaj:'kaj-0ece34d6.mp3',khela:'khela-806eaeec.mp3',khoma:'khoma-e9870fe8.mp3',koun:'koun-972ff746.mp3',laugh:'laugh-626196b5.mp3',laugh01:'laugh01-1bce0829.mp3',laugh02:'laugh02-4d2539c1.mp3',laugh03:'laugh03-7a5271fe.mp3',manna:'manna-a2805267.mp3',maro:'maro-19c7df11.mp3',masud:'masud-4d553684.mp3',mega01:'mega01-dba6e598.mp3',mega02:'mega02-92de7cd9.mp3',mega03:'mega03-50370850.mp3',mega04:'mega04-e336262e.mp3',mega05:'mega05-46a56b43.mp3',mega06:'mega06-d3ea4549.mp3',metroTrain:'metroTrain-4006d200.mp3',milestone:'milestone-6db189e2.mp3',mob1:'mob1-99ff52e9.mp3',mob2:'mob2-75692e97.mp3',mob3:'mob3-9de78dfe.mp3',noNeed:'noNeed-219fb374.mp3',ouch01:'ouch01-c95a2b2e.mp3',ouch02:'ouch02-403d69ce.mp3',ouch03:'ouch03-a571e6a2.mp3',ouch04:'ouch04-066e50ae.mp3',ouch05:'ouch05-22293b8a.mp3',ouch08:'ouch08-8302997f.mp3',ouch09:'ouch09-3b063787.mp3',ouch10:'ouch10-9f82b0af.mp3',ouch12:'ouch12-f48a338c.mp3',ouch16:'ouch16-d6de29d8.mp3',ouch17:'ouch17-c11c3fbf.mp3',ouch18:'ouch18-37d8aeba.mp3',ouch19:'ouch19-191c94e0.mp3',over:'over-0322a2d2.mp3',pagolami:'pagolami-6dd2cb5d.mp3',pain:'pain-7b3739b7.mp3',paxA:'paxA-d49f5c68.mp3',paxB:'paxB-9a2b17cb.mp3',pilin:'pilin-706443f5.mp3',plea:'plea-d3b13146.mp3',plead2:'plead2-2a36900f.mp3',plead3:'plead3-bef9b2d4.mp3',plead4:'plead4-6d64c8c6.mp3',police:'police-aa9cc301.mp3',policeAsk:'policeAsk-b5db3b66.mp3',policeGreet:'policeGreet-c4c40f5b.mp3',rag:'rag-a1beac67.mp3',rant01:'rant01-1727e64f.mp3',rant02:'rant02-37c10ff5.mp3',rant03:'rant03-19e48f03.mp3',rant04:'rant04-b3c31eb3.mp3',rant05:'rant05-f3648bf3.mp3',rant06:'rant06-b15dc8ce.mp3',rant07:'rant07-1e898548.mp3',rant08:'rant08-167352de.mp3',rant09:'rant09-da4fd43c.mp3',rant10:'rant10-1add287b.mp3',rant11:'rant11-fbcd4a70.mp3',rantKiki:'rantKiki-53806bc4.mp3',shoutA:'shoutA-fa93e562.mp3',shoutB:'shoutB-ebf6fb6e.mp3','silent-kick':'silent-kick.mp3',siren:'siren-c7e8926d.mp3',slap1:'slap1-ac3b3606.mp3',slap2:'slap2-f0071fbe.mp3',sorom:'sorom-a4ac90dd.mp3',start:'start-a4f44993.mp3',taunt:'taunt-c577bd8c.mp3',techno:'techno-a55c2a4c.mp3',trainPass:'trainPass-e11b8023.mp3',woman1:'woman1-5dbe8d8c.mp3',woman2:'woman2-2f5bad5d.mp3',womanProt:'womanProt-c8a966a8.mp3',womanThappor:'womanThappor-f83ee0a5.mp3',wow:'wow-e2ad94d4.mp3',woww:'woww-9d77d1ef.mp3',yamete:'yamete-a93c7ff8.mp3',yele:'yele-0ddc2e96.mp3',yooo:'yooo-6022c2e4.mp3'};
+var TESLA_GROUPS={pax:['greet','paxA','paxB','start','wow','woww','techno','hisab','bGoodNews','yooo','hoba','koun'],crash:['shoutA','shoutB','pain','ouch01','ouch02','ouch03','ouch04','ouch05','ouch08','ouch09','ouch10','ouch12','ouch16','ouch17','ouch18','ouch19','mega01','mega02','mega03','mega04','mega05','mega06','busp01','busp02','busp03','busp04','busslap','slap1','slap2','crash09','jamq','woman1','woman2','womanProt','womanThappor','maro','bkq','pilin','yele','yamete'],rant:['rant01','rant02','rant03','rant04','rant05','rant06','rant07','rant08','rant09','rant10','rant11','rantKiki','taunt','rag','pagolami','kaj','masud','noNeed'],police:['police','policeAsk','policeGreet','ahoVatija','bust','sorom','dhorchos','dhoira','plea','plead2','plead3','plead4','khoma','bKhoma','bPlease'],fun:['joke','khela','hole','milestone','gameover','over','laugh01','laugh02','laugh03','hehe','bLaugh','bAhaha','laugh'],street:['hawker1','hawker2','mob1','mob2','mob3'],sfx:['hornCar','hornBus','bHornMeme','siren','crash','glass','cash','bell','bCrashMeme','bDishum','bPunch','bCartoon','bBrake','metroTrain','crossBell','trainPass'],all:['ahoVatija','bAhaha','bBrake','bCartoon','bCrashMeme','bDishum','bGoodNews','bHornMeme','bKhoma','bLaugh','bPlease','bPunch','bell','bkq','busp01','busp02','busp03','busp04','busslap','bust','cash','crash','crash09','crossBell','dhoira','dhorchos','gameover','glass','greet','hawker1','hawker2','hehe','hisab','hoba','hole','hornBus','hornCar','jamq','joke','kaj','khela','khoma','koun','laugh','laugh01','laugh02','laugh03','manna','maro','masud','mega01','mega02','mega03','mega04','mega05','mega06','metroTrain','milestone','mob1','mob2','mob3','noNeed','ouch01','ouch02','ouch03','ouch04','ouch05','ouch08','ouch09','ouch10','ouch12','ouch16','ouch17','ouch18','ouch19','over','pagolami','pain','paxA','paxB','pilin','plea','plead2','plead3','plead4','police','policeAsk','policeGreet','rag','rant01','rant02','rant03','rant04','rant05','rant06','rant07','rant08','rant09','rant10','rant11','rantKiki','shoutA','shoutB','siren','slap1','slap2','sorom','start','taunt','techno','trainPass','woman1','woman2','womanProt','womanThappor','wow','woww','yamete','yele','yooo']};
+var TESLA_PRIORITY=['start','greet','paxA','paxB','police','policeAsk','ahoVatija','hornCar','hornBus','cash','crash','glass','wow','hisab','shoutA','shoutB','pain','ouch01','rant01','bell'];
+var _tBuffers={},_tLoadQ=null,_tActive=0,_tLoadStarted=false;
+function loadTeslaClips(){
+ if(_tLoadStarted)return;_tLoadStarted=true;
+ var ac=_rawCtx();if(!ac){_tLoadStarted=false;return;}
+ var keys=Object.keys(TESLA_SRC);
+ var ordered=TESLA_PRIORITY.filter(function(k){return !!TESLA_SRC[k];}).concat(keys.filter(function(k){return TESLA_PRIORITY.indexOf(k)<0;}));
+ _tLoadQ=ordered;_tPump();
+}
+function _tPump(){
+ var ac=_rawCtx();if(!ac||!_tLoadQ)return;
+ while(_tActive<4&&_tLoadQ.length){
+  var key=_tLoadQ.shift();_tActive++;
+  (function(k){
+   var done=false,fin=function(){if(done)return;done=true;_tActive--;_tPump();};
+   try{
+    fetch('assets/tesla/'+TESLA_SRC[k]).then(function(r){return r.arrayBuffer();}).then(function(ab){
+     try{var dp=ac.decodeAudioData(ab,function(buf){_tBuffers[k]=buf;fin();},function(){fin();});if(dp&&dp.catch)dp.catch(function(){fin();});}catch(e){fin();}
+    }).catch(function(){fin();});
+   }catch(e){fin();}
+  })(key);
+ }
+}
+function _playTeslaClip(key){
+ var file=TESLA_SRC[key];
+ if(!file){_vBusy=false;_voiceNext();return;}
+ var buf=_tBuffers[key];
+ if(!buf){_playTeslaViaElement(key);return;}
+ var ac=audio();if(!ac){_vBusy=false;_voiceNext();return;}
+ _stopCurVoice();
+ var tk=++_vToken;_vBusy=true;
+ try{
+  var src=ac.createBufferSource();src.buffer=buf;
+  try{src.detune.value=(Math.random()*70-35);}catch(e){}
+  var gn=ac.createGain();gn.gain.value=(TESLA_GROUPS.crash.indexOf(key)>=0||TESLA_GROUPS.police.indexOf(key)>=0)?1.12:1.0;
+  src.connect(gn);gn.connect(_voiceBus(ac));
+  _vCurSrc=src;
+  src.onended=function(){if(tk===_vToken){_vBusy=false;_vCurSrc=null;_voiceNext();}};
+  src.start();
+ }catch(e){_vBusy=false;_vCurSrc=null;_voiceNext();return;}
+ setTimeout(function(){if(tk===_vToken&&_vBusy){_vBusy=false;_vCurSrc=null;_voiceNext();}},buf.duration*1000+5000);
+}
+function _playTeslaViaElement(key){
+ var tk=++_vToken;_vBusy=true;
+ var a=null;try{a=new Audio('assets/tesla/'+TESLA_SRC[key]);a.setAttribute('playsinline','');}catch(e){_vBusy=false;_voiceNext();return;}
+ _vCurEl=a;
+ var done=false,finish=function(){if(done||tk!==_vToken)return;done=true;_vBusy=false;if(_vCurEl===a)_vCurEl=null;_voiceNext();};
+ a.addEventListener('ended',finish);a.addEventListener('error',finish);
+ var pr=null;try{pr=a.play();}catch(e){finish();return;}
+ if(pr&&pr.catch)pr.catch(finish);
+ setTimeout(finish,12000);
+}
+function enqueueTesla(key,prio){if(!TESLA_SRC[key]||!S.sound)return;_enqueueClip('ts:'+key,prio);}
+function tPick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+/* One-shot SFX from the pack (horn/cash/crash...) straight through the
+   master bus — never queued behind dialogue. Returns false when the
+   buffer is not decoded yet so the caller keeps its synth fallback. */
+function playTeslaSfx(key,vol){
+ if(!S.sound||!TESLA_SRC[key])return false;
+ var ac=audio();if(!ac)return false;
+ var buf=_tBuffers[key];
+ if(!buf){loadTeslaClips();return false;}
+ try{var src=ac.createBufferSource();src.buffer=buf;var g=ac.createGain();g.gain.value=(vol==null?.9:vol);src.connect(g);g.connect(masterDest(ac));src.start();return true;}catch(e){return false;}
+}
+/* Settings test buttons: play one pack clip right from the menu (same
+   engine; bypasses the gameplay-only queue gate like playVoiceTest). */
+function playTeslaTest(key){
+ if(!S.sound||!TESLA_SRC[key])return false;
+ try{audio();}catch(e){}
+ loadTeslaClips();
+ _vQueue.length=0;_vToken++;_stopCurVoice();_vBusy=false;
+ _playClip('ts:'+key);
+ var el=document.getElementById('tpackNow');if(el)el.textContent='▶ এখন বাজছে: '+key+' — ১ম গেমের আসল ক্লিপ';
+ return true;
+}
 
 /* ============ THREE SETUP ============ */
 var scene,camera,renderer,player,playerParts={},traffic=[],peds=[],passengers=[],signals=[],police=[],pumps=[],destMarker=null,rainPts=null;
@@ -847,14 +967,22 @@ function initWorld(){
   box(.7,.5,.06,mat(0x1c2a34),p[0]-.6,.62,p[1]+1.46);box(.7,.5,.06,mat(0x1c2a34),p[0]+.6,.62,p[1]+1.46);
   box(4.5,2.2,3.5,mat(0xcac5b8),p[0],1.1,p[1]-4.5);
   pumps.push({x:p[0],z:p[1]});var mk=new THREE.Mesh(new THREE.CylinderGeometry(.8,.8,3,10),new THREE.MeshStandardMaterial({color:0xc22e22,roughness:.5}));mk.position.set(p[0],6,p[1]);scene.add(mk);});
- // traffic signals at intersections
+ // traffic signals at intersections — one signal head on every corner, facing each approach direction
+ function signalHead(cx,cz,ry,axis){
+  var g=new THREE.Group();g.position.set(cx,0,cz);g.rotation.y=ry;scene.add(g);
+  var pole=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,4.4,8),mat(0x2f353a));pole.position.set(0,2.2,0);pole.castShadow=true;g.add(pole);
+  var housing=new THREE.Mesh(new THREE.BoxGeometry(.58,1.55,.58),mat(0x14161a));housing.position.set(0,4.7,0);housing.castShadow=true;g.add(housing);
+  function mkLamp(y){var l=new THREE.Mesh(new THREE.SphereGeometry(.18,10,8),new THREE.MeshBasicMaterial({color:0x222222}));l.position.set(0,y,.42);g.add(l);return l;}
+  return {axis:axis,r:mkLamp(5.18),y:mkLamp(4.7),g:mkLamp(4.22),_st:''};
+ }
  [-160,0,160].forEach(function(x){[-160,0,160].forEach(function(z){
-  var pole=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,4.4,8),mat(0x2f353a));pole.position.set(x+9,2.2,z+9);pole.castShadow=true;scene.add(pole);
-  box(.58,1.55,.58,mat(0x14161a),x+9,4.7,z+9);
-  var lamp=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),new THREE.MeshBasicMaterial({color:0x2ee66b}));lamp.position.set(x+9,4.7,z+9.42);scene.add(lamp);
-  var lampT=new THREE.Mesh(new THREE.SphereGeometry(.17,8,6),new THREE.MeshBasicMaterial({color:0x3d1512}));lampT.position.set(x+9,5.18,z+9.42);scene.add(lampT);
-  var lampB=new THREE.Mesh(new THREE.SphereGeometry(.17,8,6),new THREE.MeshBasicMaterial({color:0x14260f}));lampB.position.set(x+9,4.22,z+9.42);scene.add(lampB);
-  signals.push({x:x,z:z,lamp:lamp,phase:Math.random()*14});
+  var heads=[
+   signalHead(x+9,z+9,0,'NS'),           // faces traffic coming from the +z side (heading -z)
+   signalHead(x-9,z-9,Math.PI,'NS'),     // faces traffic coming from the -z side (heading +z)
+   signalHead(x+9,z-9,Math.PI/2,'EW'),   // faces traffic coming from the +x side (heading -x)
+   signalHead(x-9,z+9,-Math.PI/2,'EW')   // faces traffic coming from the -x side (heading +x)
+  ];
+  signals.push({x:x,z:z,heads:heads,phase:Math.random()*14});
  });});
  // police at 3 points — officer + proper police car with light bar
  [[10,-150],[-150,10],[150,-10]].forEach(function(p){var cop=makePerson(0x2a4d8f);cop.position.set(p[0],0,p[1]);scene.add(cop);var pc=buildPoliceCar();pc.position.set(p[0]+4.5,0,p[1]);pc.rotation.y=Math.PI/2;scene.add(pc);police.push({x:p[0],z:p[1]});});
@@ -945,15 +1073,15 @@ function startNegotiation(p){
  mission={p:p,base:base,asked:false,phase:'negotiate'};
  var per=p.persona.t==='funny'?'😂 হাসিখুশি':p.persona.t==='impatient'?'⏰ তাড়াহুড়া':'😤 তর্কপ্রিয়';
  modal('<h3>🧍 '+p.name+'</h3><p>স্বভাব: '+per+'</p><p>“ভাড়া কত নিবেন? আমি <b>'+p.dest.bn+' ('+p.dest.name+')</b> যাব।”</p><p>যাত্রীর প্রস্তাব: <b style="font-size:20px;color:#006a4e">৳'+base+'</b></p><div class="row"><button class="btnGold" id="mAccept">✅ রাজি — চলেন!</button><button class="btnG" id="mAsk">💬 আরেকটু বাড়ান</button><button class="btnRed" id="mReject">❌ না</button></div>');
- speak('ভাড়া কত নিবেন? আমি '+p.dest.bn+' যাব।','passenger');
+ if(Math.random()<0.45)enqueueTesla(tPick(['greet','paxA','paxB']));else speak('ভাড়া কত নিবেন? আমি '+p.dest.bn+' যাব।','passenger');
  $('mAccept').onclick=function(){acceptFare(base);};
  $('mAsk').onclick=function(){if(mission.asked)return;mission.asked=true;var up=base+20;
    if(Math.random()<0.6){modal('<h3>🧍 '+p.name+'</h3><p>“ঠিক আছে মামা, ৳'+up+' দিব। আর বাড়ানো যাবে না!”</p><div class="row"><button class="btnGold" id="mAccept2">✅ রাজি</button><button class="btnRed" id="mReject2">❌ না</button></div>');speak('ঠিক আছে মামা, '+up+' টাকা দিব। আর বাড়ানো যাবে না!','passenger');$('mAccept2').onclick=function(){acceptFare(up);};$('mReject2').onclick=function(){cancelMission();};}
-   else{modal('<h3>🧍 '+p.name+'</h3><p>“এত বেশি! আমি হেঁটেই যাব!” 😤 যাত্রী চলে গেল।</p><div class="row"><button class="btnG" id="mWalkOk">ঠিক আছে</button></div>');speak('এত বেশি! আমি হেঁটেই যাব!','passenger');$('mWalkOk').onclick=function(){closeModal();};p.taken=true;p.mesh.visible=false;mission=null;loop._prompted=false;setTimeout(spawnOne,4000);}};
+   else{modal('<h3>🧍 '+p.name+'</h3><p>“এত বেশি! আমি হেঁটেই যাব!” 😤 যাত্রী চলে গেল।</p><div class="row"><button class="btnG" id="mWalkOk">ঠিক আছে</button></div>');if(Math.random()<0.5)enqueueTesla(tPick(['noNeed','plea','khoma','bPlease','bKhoma']));else speak('এত বেশি! আমি হেঁটেই যাব!','passenger');$('mWalkOk').onclick=function(){closeModal();};p.taken=true;p.mesh.visible=false;mission=null;loop._prompted=false;setTimeout(spawnOne,4000);}};
  $('mReject').onclick=function(){cancelMission();};
 }
 function spawnOne(){spawnPassengers();}
-function cancelMission(){closeModal();if(mission)mission=null;loop._prompted=false;bubble('যাত্রী: “ভাড়া কত নিবেন? আরেকজন দেখি!”');speak('ভাড়া কত নিবেন? আরেকজন দেখি!','passenger');}
+function cancelMission(){closeModal();if(mission)mission=null;loop._prompted=false;bubble('যাত্রী: “ভাড়া কত নিবেন? আরেকজন দেখি!”');if(Math.random()<0.4)enqueueTesla(tPick(['noNeed','plea','plead2','khoma']));else speak('ভাড়া কত নিবেন? আরেকজন দেখি!','passenger');}
 function acceptFare(fare){
  closeModal();loop._prompted=false;mission.fare=fare;mission.phase='drive';mission.p.taken=true;mission.p.mesh.visible=false;mission.chatT=6;
  // destination marker
@@ -970,7 +1098,7 @@ function completeMission(){
  var parkBonus=Math.abs(P.speed)<1?20:20;var total=mission.fare+parkBonus;
  S.money+=total;S.trips++;S.earned+=total;coinSnd();moneyUI();
  modal('<h3>🎉 পৌঁছে গেছেন!</h3><p>'+mission.p.name+': “ধন্যবাদ মামা!”</p><p>ভাড়া: ৳'+mission.fare+'<br>🅿️ পার্কিং বোনাস: ৳'+parkBonus+'</p><p style="font-size:20px"><b>মোট পেলেন: ৳'+total+'</b></p><p>ব্যালেন্স: ৳'+S.money+'</p><div class="row"><button class="btnGold" id="mDone">✅ দারুণ!</button></div>');
- speak('ধন্যবাদ মামা!','passenger');
+ speak('ধন্যবাদ মামা!','passenger');enqueueTesla(tPick(['wow','woww','hisab','bGoodNews','yooo']));
  $('mDone').onclick=function(){closeModal();};
  scene.remove(destMarker);destMarker=null;mission=null;loop._prompted=false;setTimeout(function(){if(!mission)spawnPassengers();},1500);
 }
@@ -979,9 +1107,9 @@ function completeMission(){
 function dist2d(ax,az,bx,bz){return Math.hypot(ax-bx,az-bz);}
 function onCrash(who){
  if(P.speed>4||P.speed<-2){crashSnd();S.dmg=Math.min(100,S.dmg+Math.abs(P.speed)*0.9);P.speed*=-0.25;
-  var shout=SHOUTS[Math.floor(Math.random()*SHOUTS.length)];bubble(shout,2800);speak(shout,'driver',{priority:'high'});
+  var shout=SHOUTS[Math.floor(Math.random()*SHOUTS.length)];bubble(shout,2800);speak(shout,'driver',{priority:'high'});enqueueTesla(tPick(['shoutA', 'shoutB', 'pain', 'ouch01', 'ouch02', 'ouch03', 'ouch04', 'ouch05', 'ouch08', 'ouch09', 'ouch10', 'ouch12', 'ouch16', 'ouch17', 'ouch18', 'ouch19', 'mega01', 'mega02', 'mega03', 'mega04', 'mega05', 'mega06', 'busp01', 'busp02', 'busp03', 'busp04', 'crash09', 'jamq']));
   if(mission&&mission.phase==='drive'&&Math.random()<.6)setTimeout(function(){if(mission&&mission.phase==='drive'){bubble(mission.p.name+': “'+mission.p.persona.lines[0]+'”');speak(mission.p.persona.lines[0],'passenger');}},2900);
-  if(fineCd<=0&&police.some(function(c){return dist2d(P.x,P.z,c.x,c.z)<26;})){fineCd=20;S.money-=100;moneyUI();toast('🚔 পুলিশের সামনে ধাক্কা! জরিমানা ৳১০০ — ব্যালেন্স ৳'+S.money,3000);speak('পুলিশের সামনে ধাক্কা দিলেন! জরিমানা একশো টাকা।','police');}
+  if(fineCd<=0&&police.some(function(c){return dist2d(P.x,P.z,c.x,c.z)<26;})){fineCd=20;S.money-=100;moneyUI();toast('🚔 পুলিশের সামনে ধাক্কা! জরিমানা ৳১০০ — ব্যালেন্স ৳'+S.money,3000);speak('পুলিশের সামনে ধাক্কা দিলেন! জরিমানা একশো টাকা।','police');enqueueTesla(tPick(TESLA_GROUPS.police));}
  }
 }
 
@@ -1024,7 +1152,7 @@ function loop(){
   if(c.stopped>0){c.stopped-=dt;}else{
    // signal check: stop at red near intersection ahead
    var stop=false;
-   signals.forEach(function(sg){var d=c.horiz?Math.abs(c.pos-sg.x):Math.abs(c.pos-sg.z);var dl=c.horiz?Math.abs(c.line-sg.z):Math.abs(c.line-sg.x);if(d<10&&dl<2&&signalRed(sg))stop=true;});
+   signals.forEach(function(sg){var d=c.horiz?Math.abs(c.pos-sg.x):Math.abs(c.pos-sg.z);var dl=c.horiz?Math.abs(c.line-sg.z):Math.abs(c.line-sg.x);if(d<10&&dl<2&&signalRed(sg,c.horiz))stop=true;});
    // jam: slow near farmgate center sometimes
    var jamF=(Math.hypot(c.mesh.position.x,c.mesh.position.z)<60&&Math.sin(t*.05)>0.2)?0.25:1;
    if(!stop)c.pos+=c.speed*jamF*dt;
@@ -1034,25 +1162,37 @@ function loop(){
   c.mesh.rotation.y=c.horiz?(c.speed>0?Math.PI/2:-Math.PI/2):(c.speed>0?0:Math.PI);
  });
  // peds
- peds.forEach(function(p){p.z+=p.dir*p.sp*dt;if(p.z>210)p.dir=-1;if(p.z<-210)p.dir=1;p.mesh.position.set(p.x+Math.sin(t+p.z)*0.3,0,p.z);if(dist2d(P.x,P.z,p.x,p.z)<2.4&&Math.abs(P.speed)>3){bubble('পথচারী: “ওই মিয়া! চোখে দেখেন না?” 😱');speak('ওই মিয়া! চোখে দেখেন না?','ped',{priority:'low'});P.speed*=.4;}});
+ peds.forEach(function(p){p.z+=p.dir*p.sp*dt;if(p.z>210)p.dir=-1;if(p.z<-210)p.dir=1;p.mesh.position.set(p.x+Math.sin(t+p.z)*0.3,0,p.z);if(dist2d(P.x,P.z,p.x,p.z)<2.4&&Math.abs(P.speed)>3){bubble('পথচারী: “ওই মিয়া! চোখে দেখেন না?” 😱');speak('ওই মিয়া! চোখে দেখেন না?','ped',{priority:'low'});if(Math.random()<0.5)enqueueTesla(tPick(['taunt','crash09','jamq','rantKiki']),'low');P.speed*=.4;}});
  // passengers bob + pickup prompt
  passengers.forEach(function(p){if(!p.taken){p.mesh.position.y=Math.abs(Math.sin(t*3+p.bob))*.12;p.mesh.rotation.y+=dt*.6;}});
  if(!mission){var np=nearPassenger();if(np&&!loop._prompted){loop._prompted=true;startNegotiation(np);}if(!np)loop._prompted=false;}
  // mission progress
  if(mission&&mission.phase==='drive'){
   var d=dist2d(P.x,P.z,mission.p.dest.x,mission.p.dest.z);
-  mission.chatT-=dt;if(mission.chatT<0){mission.chatT=9+Math.random()*6;var chatLine=mission.p.persona.lines[Math.floor(Math.random()*3)];bubble(mission.p.name+': “'+chatLine+'”',2600);speak(chatLine,'passenger',{priority:'low'});}
+  mission.chatT-=dt;if(mission.chatT<0){mission.chatT=9+Math.random()*6;var chatLine=mission.p.persona.lines[Math.floor(Math.random()*3)];bubble(mission.p.name+': “'+chatLine+'”',2600);speak(chatLine,'passenger',{priority:'low'});if(mission.p.persona.t==='funny'&&Math.random()<0.5)enqueueTesla(tPick(TESLA_GROUPS.fun),'low');}
   if(d<10&&Math.abs(P.speed)<1.5)completeMission();
  }
  // petrol pump
  pumps.forEach(function(pp){if(dist2d(P.x,P.z,pp.x,pp.z)<7&&Math.abs(P.speed)<1&&S.fuel<99&&!loop._pumpCd){loop._pumpCd=true;var cost=Math.ceil((100-S.fuel)*2);if(S.money>=cost&&cost>0){modal('<h3>⛽ পেট্রল পাম্প</h3><p>ফুল ট্যাংক করতে লাগবে ৳'+cost+'</p><div class="row"><button class="btnGold" id="pumpYes">ভরুন</button><button class="btnRed" id="pumpNo">না</button></div>');$('pumpYes').onclick=function(){S.money-=cost;S.fuel=100;coinSnd();moneyUI();closeModal();toast('⛽ ট্যাংক ফুল!');};$('pumpNo').onclick=function(){closeModal();};}setTimeout(function(){loop._pumpCd=false;},3000);}});
- // signals update
- signals.forEach(function(sg){sg.phase=(sg.phase+dt)%14;var col=signalRed(sg)?0xff2222:(sg.phase<6?0x00ff55:0xffcc00);if(sg._col!==col){sg._col=col;sg.lamp.material.color.setHex(col);}});
+ // signals update — N-S and E-W approaches take turns; each head shows its own direction's light
+ signals.forEach(function(sg){
+  sg.phase=(sg.phase+dt)%14;
+  var stNS=sg.phase<6?'g':(sg.phase<7?'y':'r');
+  var stEW=sg.phase<7?'r':(sg.phase<13?'g':'y');
+  sg.heads.forEach(function(h){
+   var st=h.axis==='NS'?stNS:stEW;
+   if(h._st!==st){h._st=st;
+    h.r.material.color.setHex(st==='r'?0xff2222:0x3d1512);
+    h.y.material.color.setHex(st==='y'?0xffcc00:0x2e2408);
+    h.g.material.color.setHex(st==='g'?0x00ff55:0x14260f);
+   }
+  });
+ });
  // red-light fine
  if(fineCd>0)fineCd-=dt;
- signals.forEach(function(sg){if(fineCd<=0&&signalRed(sg)&&Math.abs(P.speed)>6&&dist2d(P.x,P.z,sg.x,sg.z)<9){fineCd=15;S.money-=100;moneyUI();toast('🚦 লাল সিগন্যাল ভেঙেছেন! জরিমানা ৳১০০ — ব্যালেন্স ৳'+S.money,3000);bubble('পুলিশ: “এইটা কি আপনার বাপের রাস্তা?” 👮');speak('এইটা কি আপনার বাপের রাস্তা? লাল সিগন্যাল ভেঙেছেন! জরিমানা একশো টাকা।','police',{priority:'high'});}});
+ signals.forEach(function(sg){if(fineCd<=0&&Math.abs(P.speed)>6&&dist2d(P.x,P.z,sg.x,sg.z)<9){var pHoriz=Math.abs(P.x-sg.x)>Math.abs(P.z-sg.z);if(signalRed(sg,pHoriz)){fineCd=15;S.money-=100;moneyUI();toast('🚦 লাল সিগন্যাল ভেঙেছেন! জরিমানা ৳১০০ — ব্যালেন্স ৳'+S.money,3000);bubble('পুলিশ: “এইটা কি আপনার বাপের রাস্তা?” 👮');speak('এইটা কি আপনার বাপের রাস্তা? লাল সিগন্যাল ভেঙেছেন! জরিমানা একশো টাকা।','police',{priority:'high'});enqueueTesla(tPick(TESLA_GROUPS.police));}}});
  // area detect
- var area='রাস্তা';AREAS.forEach(function(a){if(Math.hypot(P.x-a.x,P.z-a.z)<62){area=a.bn+' ('+a.name+')';if(!S.visited[a.name]){S.visited[a.name]=true;toast('🗺️ নতুন এলাকা: '+a.bn+'!',2500);}}});
+ var area='রাস্তা';AREAS.forEach(function(a){if(Math.hypot(P.x-a.x,P.z-a.z)<62){area=a.bn+' ('+a.name+')';if(!S.visited[a.name]){S.visited[a.name]=true;toast('🗺️ নতুন এলাকা: '+a.bn+'!',2500);if(Math.random()<0.6)enqueueTesla(Math.random()<0.5?'milestone':tPick(TESLA_GROUPS.street),'low');}}});
  if(area!==lastArea){lastArea=area;$('hudArea').textContent='📍 '+area;}
  // day/night
  if(S.timeMode==='auto')dayT=(dayT+dt/240)%1;else dayT=S.timeMode==='day'?0.3:0.85;
@@ -1082,7 +1222,8 @@ function loop(){
  if(loop._fc%3===0)drawMinimap();
  renderer.render(scene,camera);
 }
-function signalRed(sg){return sg.phase>=7;}
+function sigState(sg,horiz){var p=sg.phase;if(horiz)return p<7?'r':(p<13?'g':'y');return p<6?'g':(p<7?'y':'r');}
+function signalRed(sg,horiz){return sigState(sg,horiz)==='r';}
 function nearestPassengerTarget(){var best=null,bd=1e9;passengers.forEach(function(p){if(!p.taken){var d=dist2d(P.x,P.z,p.x,p.z);if(d<bd){bd=d;best=p;}}});return best?{x:best.x,z:best.z,label:'যাত্রী '+best.name+' — '+Math.round(bd)+'m (কাছে গিয়ে থামুন)'}:null;}
 function drawMinimap(){
  var mmEl=$('minimap');var c=mmEl._ctx||(mmEl._ctx=mmEl.getContext('2d'));c.fillStyle='#123524';c.fillRect(0,0,130,130);
@@ -1099,8 +1240,8 @@ function drawMinimap(){
 function bindHold(id,prop){var el=$(id);var on=function(e){e.preventDefault();touch[prop]=1;el.classList.add('held');audio();};var off=function(e){e.preventDefault();touch[prop]=0;el.classList.remove('held');};
  el.addEventListener('touchstart',on,{passive:false});el.addEventListener('touchend',off);el.addEventListener('touchcancel',off);el.addEventListener('mousedown',on);el.addEventListener('mouseup',off);el.addEventListener('mouseleave',off);}
 function init(){
- initWorld();moneyUI();loadVoiceClips();
- $('mPlay').onclick=function(){audio();primeVoice();show(null);S.started=true;P.x=-3.2;P.z=26;P.angle=Math.PI;toast('মামা, চলেন! 🟡 হলুদ পিনের যাত্রী তুলুন',3500);};
+ initWorld();moneyUI();loadVoiceClips();loadTeslaClips();
+ $('mPlay').onclick=function(){audio();primeVoice();show(null);S.started=true;P.x=-3.2;P.z=26;P.angle=Math.PI;enqueueTesla('start','high');toast('মামা, চলেন! 🟡 হলুদ পিনের যাত্রী তুলুন',3500);};
  $('mGarage').onclick=function(){renderGarage();show('scrGarage');};
  $('mVehicles').onclick=function(){renderVehicles();show('scrVehicles');};
  $('mMissions').onclick=function(){renderMissions();show('scrMissions');};
@@ -1114,6 +1255,12 @@ function init(){
  $('btnPause').onclick=function(){S.started=false;engine(false,0);cancelSpeak();show('scrMenu');};
  $('setSound').onchange=function(e){S.sound=e.target.checked;if(!S.sound){engine(false,0);cancelSpeak();}};
  $('btnVoiceTest').onclick=function(){if(!playVoiceTest())toast('আগে 🔊 সাউন্ড অন করুন');};
+ document.querySelectorAll('[data-tpack]').forEach(function(b){b.onclick=function(){
+  if(!S.sound){toast('আগে 🔊 সাউন্ড অন করুন');return;}
+  var cat=b.dataset.tpack,pool=TESLA_GROUPS[cat]||TESLA_GROUPS.all,key=tPick(pool);
+  if(cat==='sfx'){if(playTeslaSfx(key,.95)){var el=$('tpackNow');if(el)el.textContent='▶ এখন বাজছে: '+key+' — ১ম গেমের আসল সাউন্ড';}else playTeslaTest(key);return;}
+  playTeslaTest(key);
+ };});
  $('setWeather').onchange=function(e){S.weatherMode=e.target.value;};
  $('setTime').onchange=function(e){S.timeMode=e.target.value;};
  $('setCam').onchange=function(e){S.camMode=e.target.value;};
